@@ -18,6 +18,7 @@ package keywhiz.service.daos;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableSet;
+import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -237,23 +238,25 @@ public class AclDAO {
       }
 
       Optional<SecretContent> secretContent =
-          secretContentDAO.getSecretContentBySecretIdAndVersion(
-              secretSeries.get().getId(), version);
+          secretContentDAO.getSecretContentBySecretIdAndVersion(secretSeries.get().getId(), version);
       if (!secretContent.isPresent()) {
         return Optional.empty();
       }
 
-      SecretSeriesAndContent seriesAndContent = SecretSeriesAndContent.of(
-          secretSeries.get(), secretContent.get());
+      SecretSeriesAndContent seriesAndContent = SecretSeriesAndContent.of(secretSeries.get(), secretContent.get());
       return Optional.of(SanitizedSecret.fromSecretSeriesAndContent(seriesAndContent));
     });
   }
 
   protected void allowAccess(long secretId, long groupId) {
+    OffsetDateTime now = OffsetDateTime.now();
+
     dslContext
         .insertInto(ACCESSGRANTS)
         .set(ACCESSGRANTS.SECRETID, Math.toIntExact(secretId))
         .set(ACCESSGRANTS.GROUPID, Math.toIntExact(groupId))
+        .set(ACCESSGRANTS.CREATEDAT, now)
+        .set(ACCESSGRANTS.UPDATEDAT, now)
         .execute();
   }
 
@@ -266,10 +269,14 @@ public class AclDAO {
   }
 
   protected void enrollClient(long clientId, long groupId) {
+    OffsetDateTime now = OffsetDateTime.now();
+
     dslContext
         .insertInto(MEMBERSHIPS)
         .set(MEMBERSHIPS.GROUPID, Math.toIntExact(groupId))
         .set(MEMBERSHIPS.CLIENTID, Math.toIntExact(clientId))
+        .set(MEMBERSHIPS.CREATEDAT, now)
+        .set(MEMBERSHIPS.UPDATEDAT, now)
         .execute();
   }
 
